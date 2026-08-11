@@ -32,6 +32,10 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
 os.makedirs(STATIC_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+@app.get("/healthz")
+def health_check():
+    return {"status": "ok"}
+
 class RunConfig(BaseModel):
     market: str = "UK"
     volume: int = 2
