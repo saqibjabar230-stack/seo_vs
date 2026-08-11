@@ -22,14 +22,15 @@ class AppynAdapter:
             "datos_informacion": {
                 "app_status": "new",
                 "descripcion": appyn_desc,
-                "version": doc.custom_fields.get("version", random.choice(["1.2", "1.5.4", "2.0.1", "3.1.2", "4.0"])),
-                "tamano": doc.custom_fields.get("size", random.choice(["15MB", "32MB", "48MB", "Varies with device", "64MB"])),
-                "fecha_actualizacion": "Just now",
-                "requerimientos": "Android",
-                "descargas": random.choice(["10k+", "50k+", "100k+", "500k+", "1M+"]),
-                "categoria_app": "GAMES",
-                "os": "ANDROID",
-                "offer": {"amount": "", "currency": "USD"}
+                "version": doc.custom_fields.get("version") or "1.0.0",
+                "tamano": doc.custom_fields.get("size") or "50MB",
+                "fecha_actualizacion": doc.custom_fields.get("updated_at") or "Just now",
+                "requerimientos": doc.custom_fields.get("requirements") or "Android",
+                "descargas": doc.custom_fields.get("downloads") or "10k+",
+                "categoria_app": doc.custom_fields.get("category") or "GAMES",
+                "os": doc.custom_fields.get("os") or "ANDROID",
+                "offer": {"amount": "", "currency": "USD"},
+                "rating": doc.custom_fields.get("rating") or doc.custom_fields.get("stars") or "5.0"
             },
             "datos_download": {
                 "option": "links",
