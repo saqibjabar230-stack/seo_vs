@@ -15,7 +15,7 @@ class SensitiveDataFilter(logging.Filter):
     def __init__(self):
         super().__init__()
         self.sensitive_strings = [
-            settings.groq_api_key,
+            os.getenv("OPENROUTER_API_KEY", ""),
             settings.wp_app_password
         ]
         # Remove empty strings to avoid replacing everything
@@ -46,15 +46,22 @@ def get_logger(agent_name: str) -> logging.Logger:
         stream_handler.setFormatter(formatter)
         
         # Rotating File Handler (Max 5MB, keep 2 backups)
-        file_handler = RotatingFileHandler(LOG_FILE, maxBytes=5*1024*1024, backupCount=2)
-        file_handler.setFormatter(formatter)
-        
-        # Add filters
-        sensitive_filter = SensitiveDataFilter()
-        stream_handler.addFilter(sensitive_filter)
-        file_handler.addFilter(sensitive_filter)
-        
-        logger.addHandler(stream_handler)
-        logger.addHandler(file_handler)
+        try:
+            file_handler = RotatingFileHandler(LOG_FILE, maxBytes=5*1024*1024, backupCount=2)
+            file_handler.setFormatter(formatter)
+            
+            # Add filters
+            sensitive_filter = SensitiveDataFilter()
+            stream_handler.addFilter(sensitive_filter)
+            file_handler.addFilter(sensitive_filter)
+            
+            logger.addHandler(stream_handler)
+            logger.addHandler(file_handler)
+        except (IOError, OSError):
+            # File system not writable (common in containerized environments)
+            # Just use stream handler only
+            sensitive_filter = SensitiveDataFilter()
+            stream_handler.addFilter(sensitive_filter)
+            logger.addHandler(stream_handler)
         
     return logger
