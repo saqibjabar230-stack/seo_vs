@@ -4,6 +4,7 @@ import uuid
 import shutil
 import datetime
 import json
+import html
 from typing import Optional, List, Dict, Any
 
 from fastapi import FastAPI, BackgroundTasks, File, Form, UploadFile, Depends, HTTPException, status, Response, Request
@@ -55,9 +56,13 @@ class SettingsUpdate(BaseModel):
     theme_type: str = "standard"
     seo_plugin: str = "none"
 
-# Ensure seed admin user exists for testing
+# Ensure seed admin user exists only in non-production local/dev environments.
 def seed_admin_user():
     try:
+        app_env = os.getenv("APP_ENV", "development").strip().lower()
+        if app_env in {"production", "prod"}:
+            return
+
         with SessionLocal() as db:
             admin = db.query(User).filter(User.role == "admin").first()
             if not admin:
@@ -89,6 +94,28 @@ def read_root():
 @app.get("/dashboard")
 def dashboard_page():
     return read_root()
+
+@app.get("/openseo")
+def openseo_page(request: Request):
+    """Render the isolated OpenSEO workspace without sharing application state."""
+    file_path = os.path.join(STATIC_DIR, 'openseo.html')
+    if not os.path.exists(file_path):
+        return HTMLResponse("<h1>OpenSEO page not found</h1>", status_code=404)
+
+    with open(file_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    configured_url = os.getenv("OPENSEO_URL")
+    request_host = (request.url.hostname or "").lower()
+    if configured_url:
+        openseo_url = configured_url
+    elif request_host in {"localhost", "127.0.0.1", "::1"}:
+        openseo_url = "http://localhost:3001"
+    else:
+        openseo_url = "https://seovs-production.up.railway.app"
+    openseo_url = openseo_url.rstrip("/")
+    content = content.replace("__OPENSEO_URL__", html.escape(openseo_url, quote=True))
+    return HTMLResponse(content=content)
 
 @app.get("/admin")
 def admin_page(user = Depends(require_admin)):
@@ -578,6 +605,10 @@ def publish_draft(draft_id: int, action: str = "publish", user_id: int = Depends
         
         doc_data = json.loads(draft_record.document_json)
         doc = ContentDocument(**doc_data)
+        
+        if active_theme and 'appyn' in active_theme.lower():
+            from adapters.themes.appyn import AppynAdapter
+            AppynAdapter.ensure_custom_fields(doc)
         
         # Load Image Assignments
         assignments_db = db.query(ImageAssignment).filter(ImageAssignment.draft_id == draft_id).all()
@@ -1303,4 +1334,3 @@ def retry_history_job(history_id: int, user_id: int = Depends(get_current_user_i
     enqueue_job(job_id, {"job_id": job_id, "user_id": user_id, "game_name": h.game_name, "provider": h.provider, "dry_run": False})
     log_audit_event(user_id, "HISTORY_RETRIED", "Job", job_id)
     return {"message": "Job retry enqueued", "job_id": job_id}
-

@@ -1,12 +1,21 @@
 import json
+import random
+from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 from utils.logger import get_logger
 from agents.discovery_agent import Candidate
-from groq import Groq
+from adapters.themes.appyn import AppynAdapter
+from utils.openrouter import OpenRouterClient
 from config.settings import settings
 from core.universal_model import ContentDocument, SeoMetadata, Section, FAQ
 
 logger = get_logger("content_agent")
+
+@dataclass
+class ArticleDraft:
+    title: str
+    body: str
+    facts_used: Dict[str, Any]
 
 class ContentAgent:
     def draft_article(self, candidate: Candidate, context: Dict[str, Any], verified_facts: Dict[str, Any], template: Optional[Dict[str, Any]] = None) -> ContentDocument:
@@ -14,9 +23,12 @@ class ContentAgent:
         Drafts the article using context, verified facts, and selected template structure.
         Outputs directly to the Universal Content Model (ContentDocument) with stable section_ids.
         """
-        logger.info(f"Drafting article for {candidate.game_name} via Groq JSON mode...")
+        logger.info(f"Drafting article for {candidate.game_name} via OpenRouter JSON mode...")
         
-        client = Groq(api_key=settings.groq_api_key)
+        client = OpenRouterClient(
+            api_key=settings.openrouter_api_key,
+            model=settings.openrouter_model,
+        )
         
         template_instructions = ""
         if template and template.get("sections"):
@@ -89,7 +101,7 @@ class ContentAgent:
         try:
             try:
                 response = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
+                    model=settings.openrouter_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
@@ -100,9 +112,9 @@ class ContentAgent:
                 )
             except Exception as e:
                 if '429' in str(e) or 'rate_limit' in str(e).lower():
-                    logger.warning("Groq rate limit hit for 70b model. Falling back to llama-3.1-8b-instant...")
+                    logger.warning("OpenRouter rate limit hit for primary model. Retrying with the configured model...")
                     response = client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
+                        model=settings.openrouter_model,
                         messages=[
                             {"role": "system", "content": system_prompt},
                             {"role": "user", "content": user_prompt}
@@ -123,12 +135,12 @@ class ContentAgent:
                 
             data = json.loads(raw_json)
             
-            # Groq sometimes double-encodes: the result is a string instead of a dict
+            # Providers sometimes double-encode: the result is a string instead of a dict
             if isinstance(data, str):
                 data = json.loads(data)
             
             if not isinstance(data, dict):
-                raise ValueError(f"Groq returned unexpected type: {type(data)}")
+                raise ValueError(f"OpenRouter returned unexpected type: {type(data)}")
             
             clean_game_name = candidate.game_name.replace('-', ' ').title()
             
@@ -200,12 +212,13 @@ class ContentAgent:
                 faqs=faqs,
                 custom_fields={"verified_facts": verified_facts}
             )
+            AppynAdapter.ensure_custom_fields(doc)
             
             logger.info(f"Draft generated for {candidate.game_name}.")
             return doc
             
         except Exception as e:
-            logger.error(f"Failed to generate structured draft with Groq: {e}")
+            logger.error(f"Failed to generate structured draft with OpenRouter: {e}")
             return ContentDocument(
                 title=f"Fallback {candidate.game_name}",
                 seo_metadata=SeoMetadata(focus_keyword=candidate.game_name, meta_description=""),
@@ -214,25 +227,32 @@ class ContentAgent:
                 conclusion=""
             )
 
-def check_differentiation(doc: ContentDocument) -> bool:
+def check_differentiation(doc: Any) -> bool:
     """
-    Ensures mandatory editorial sections exist in the structured document.
+    Ensures the draft contains at least one of the expected editorial markers.
+    Accepts either a structured document, an ArticleDraft, or a raw string.
     """
-    full_text = doc.introduction.lower()
-    for sec in doc.sections:
-        full_text += " " + sec.heading.lower() + " " + sec.content.lower()
-        for sub in sec.subsections:
-            full_text += " " + sub.heading.lower() + " " + sub.content.lower()
-            
+    if isinstance(doc, str):
+        full_text = doc.lower()
+    elif hasattr(doc, "body"):
+        full_text = str(doc.body).lower()
+    elif isinstance(doc, ContentDocument):
+        full_text = doc.introduction.lower()
+        for sec in doc.sections:
+            full_text += " " + sec.heading.lower() + " " + sec.content.lower()
+            for sub in sec.subsections:
+                full_text += " " + sub.heading.lower() + " " + sub.content.lower()
+    else:
+        full_text = str(doc or "").lower()
+
     required_markers = [
         "by our expert",
         "who this game suits",
         "compar"
     ]
-    
-    missing = [marker for marker in required_markers if marker not in full_text]
-    
-    if missing:
-        logger.warning(f"Differentiation check: Draft is missing mandatory sections: {missing}, but proceeding to satisfy length requirements.")
-        
+
+    if not any(marker in full_text for marker in required_markers):
+        logger.warning("Differentiation check: Draft is missing mandatory editorial markers.")
+        return False
+
     return True

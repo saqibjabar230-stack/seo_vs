@@ -2,9 +2,17 @@ import os
 import base64
 import hashlib
 
+
+def _is_production() -> bool:
+    return os.getenv("APP_ENV", "development").strip().lower() in {"production", "prod"}
+
+
 def _get_derived_key() -> bytes:
-    # Use SECRET_KEY from env or generate a deterministic machine-specific key fallback
-    secret = os.getenv("SECRET_KEY", "seo_automation_default_secret_key_2026")
+    secret = os.getenv("SECRET_KEY")
+    if not secret:
+        if _is_production():
+            raise RuntimeError("SECRET_KEY must be set in production. Refusing to start without a secret key.")
+        secret = "seo_automation_local_dev_secret_key"
     return hashlib.sha256(secret.encode('utf-8')).digest()
 
 def encrypt_credential(plain_text: str) -> str:

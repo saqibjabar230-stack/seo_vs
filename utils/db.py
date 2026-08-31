@@ -65,6 +65,13 @@ def init_db(db_path=DB_PATH, schema_path=SCHEMA_PATH):
             conn.execute("ALTER TABLE user_settings ADD COLUMN theme_type TEXT DEFAULT 'standard'")
         if 'seo_plugin' not in us_cols:
             conn.execute("ALTER TABLE user_settings ADD COLUMN seo_plugin TEXT DEFAULT 'none'")
-            
+
+        # Compatibility migration for older trusted_facts tables created before user_id defaulting was enforced.
+        cursor = conn.execute("PRAGMA table_info(trusted_facts)")
+        fact_cols = [row['name'] for row in cursor.fetchall()]
+        if 'user_id' not in fact_cols:
+            conn.execute("ALTER TABLE trusted_facts ADD COLUMN user_id INTEGER DEFAULT 1")
+        conn.execute("UPDATE trusted_facts SET user_id = 1 WHERE user_id IS NULL")
+
         conn.commit()
     logger.info("Database initialized with column migrations.")

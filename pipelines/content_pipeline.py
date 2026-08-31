@@ -12,11 +12,12 @@ from core.universal_model import ContentDocument
 
 logger = get_logger("content_pipeline")
 
-def run_single_candidate(candidate: Candidate, target_market: str, user_id: int, user_settings: dict, db_path: str = None, dry_run: bool = False) -> Tuple[Optional[ContentDocument], str]:
+def run_single_candidate(candidate: Candidate, target_market: str, user_id: int = 1, user_settings: dict = None, db_path: str = None, dry_run: bool = False) -> Tuple[Optional[ContentDocument], str]:
     """
     Runs a single candidate through the strict Phase 8 pipeline sequence.
     Returns a tuple of (draft, status_reason).
     """
+    user_settings = user_settings or {}
     logger.info(f"Starting pipeline for {candidate.provider} - {candidate.game_name} (Market: {target_market}) [Dry Run: {dry_run}]")
     kwargs = {'db_path': db_path} if db_path else {}
     
