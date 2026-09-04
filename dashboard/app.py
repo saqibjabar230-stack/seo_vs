@@ -8,7 +8,7 @@ import html
 from typing import Optional, List, Dict, Any
 
 from fastapi import FastAPI, BackgroundTasks, File, Form, UploadFile, Depends, HTTPException, status, Response, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -103,14 +103,7 @@ def dashboard_page():
 
 @app.get("/openseo")
 def openseo_page(request: Request):
-    """Render the isolated OpenSEO workspace without sharing application state."""
-    file_path = os.path.join(STATIC_DIR, 'openseo.html')
-    if not os.path.exists(file_path):
-        return HTMLResponse("<h1>OpenSEO page not found</h1>", status_code=404)
-
-    with open(file_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-
+    """Redirect directly to the OpenSEO workspace resource."""
     configured_url = os.getenv("OPENSEO_URL")
     request_host = (request.url.hostname or "").lower()
     if configured_url:
@@ -119,9 +112,7 @@ def openseo_page(request: Request):
         openseo_url = "http://localhost:3001"
     else:
         openseo_url = "https://seovs-production.up.railway.app"
-    openseo_url = openseo_url.rstrip("/")
-    content = content.replace("__OPENSEO_URL__", html.escape(openseo_url, quote=True))
-    return HTMLResponse(content=content)
+    return RedirectResponse(url=openseo_url.rstrip("/"), status_code=307)
 
 @app.get("/admin")
 def admin_page(user = Depends(require_admin)):
