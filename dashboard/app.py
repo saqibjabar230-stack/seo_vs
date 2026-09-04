@@ -103,7 +103,7 @@ def dashboard_page():
 
 @app.get("/openseo")
 def openseo_page(request: Request):
-    """Redirect directly to the OpenSEO workspace resource."""
+    """Open the independently deployed OpenSEO workspace."""
     configured_url = os.getenv("OPENSEO_URL")
     request_host = (request.url.hostname or "").lower()
     if configured_url:
@@ -111,7 +111,11 @@ def openseo_page(request: Request):
     elif request_host in {"localhost", "127.0.0.1", "::1"}:
         openseo_url = "http://localhost:3001"
     else:
-        openseo_url = "https://seovs-production.up.railway.app"
+        return HTMLResponse(
+            "<h1>OpenSEO is not configured</h1>"
+            "<p>Set OPENSEO_URL to the URL of the separate OpenSEO deployment.</p>",
+            status_code=503,
+        )
     return RedirectResponse(url=openseo_url.rstrip("/"), status_code=307)
 
 @app.get("/admin")
