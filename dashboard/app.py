@@ -26,7 +26,13 @@ app = FastAPI(title="SEO Automation Multi-Tenant SaaS Engine")
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.getenv("DATA_DIR", os.path.join(BASE_DIR, 'data'))
+_default_data_dir = os.path.join(BASE_DIR, 'data')
+if (
+    os.getenv('APP_ENV', 'development').strip().lower() in {'production', 'prod'}
+    or os.getenv('RAILWAY_ENVIRONMENT')
+):
+    _default_data_dir = os.path.join('/tmp', 'seo_automation')
+DATA_DIR = os.getenv("DATA_DIR", _default_data_dir)
 DB_PATH = os.path.join(DATA_DIR, 'history.db')
 STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
 
@@ -696,7 +702,7 @@ async def add_link(
         if not check_user_quota(user_id):
             raise HTTPException(status_code=402, detail="Monthly article limit reached for your subscription plan.")
             
-        temp_dir = os.path.join(BASE_DIR, 'data', 'tmp_uploads')
+        temp_dir = os.path.join(DATA_DIR, 'tmp_uploads')
         os.makedirs(temp_dir, exist_ok=True)
         
         def process_upload(upload_file: UploadFile):
@@ -782,7 +788,7 @@ def get_links_status(user_id: int = Depends(get_current_user_id)):
 
 @app.get("/api/logs")
 def get_logs(user_id: int = Depends(get_current_user_id)):
-    log_file = os.path.join(BASE_DIR, 'data', 'orchestrator.log')
+    log_file = os.path.join(DATA_DIR, 'orchestrator.log')
     if not os.path.exists(log_file):
         return {"logs": []}
     try:
@@ -1056,7 +1062,7 @@ async def upload_image_asset(
             
         image_id = f"img-{uuid.uuid4().hex[:12]}"
         safe_filename = f"{image_id}{ext}"
-        upload_dir = os.path.join(BASE_DIR, 'data', 'images')
+        upload_dir = os.path.join(DATA_DIR, 'images')
         os.makedirs(upload_dir, exist_ok=True)
         file_path = os.path.join(upload_dir, safe_filename)
         
