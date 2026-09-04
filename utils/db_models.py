@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Text, create_engine
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey, Text, create_engine, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 import datetime
@@ -330,6 +330,28 @@ class WebsiteProfile(Base):
 
 # Create tables automatically
 Base.metadata.create_all(bind=engine)
+
+
+def _migrate_existing_schema():
+    """Add model columns that create_all() cannot add to existing databases."""
+    if not inspect(engine).has_table("users"):
+        return
+
+    with engine.begin() as connection:
+        existing_columns = {
+            column["name"] for column in inspect(connection).get_columns("users")
+        }
+        migrations = {
+            "role": "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
+            "subscription_plan": "ALTER TABLE users ADD COLUMN subscription_plan TEXT NOT NULL DEFAULT 'free'",
+            "is_active": "ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE",
+        }
+        for column_name, statement in migrations.items():
+            if column_name not in existing_columns:
+                connection.execute(text(statement))
+
+
+_migrate_existing_schema()
 
 def get_db():
     db = SessionLocal()
