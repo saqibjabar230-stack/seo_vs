@@ -111,11 +111,7 @@ def openseo_page(request: Request):
     elif request_host in {"localhost", "127.0.0.1", "::1"}:
         openseo_url = "http://localhost:3001"
     else:
-        return HTMLResponse(
-            "<h1>OpenSEO is not configured</h1>"
-            "<p>Set OPENSEO_URL to the URL of the separate OpenSEO deployment.</p>",
-            status_code=503,
-        )
+        openseo_url = "https://app.openseo.so"
     return RedirectResponse(url=openseo_url.rstrip("/"), status_code=307)
 
 @app.get("/admin")

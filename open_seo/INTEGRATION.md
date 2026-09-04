@@ -22,7 +22,9 @@ pnpm run dev
 The existing FastAPI dashboard links to the separate OpenSEO deployment through
 the `OPENSEO_URL` environment variable. For local development, use
 `http://localhost:3001`. Configure `OPENSEO_URL` in the dashboard's production
-environment with the URL of the independently deployed OpenSEO app.
+environment with the URL of the independently deployed OpenSEO app. If it is
+not configured, the dashboard opens the official hosted OpenSEO app at
+`https://app.openseo.so`.
 
 ## Railway and Cloudflare Access
 
