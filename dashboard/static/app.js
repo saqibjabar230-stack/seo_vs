@@ -135,6 +135,30 @@ document.addEventListener("DOMContentLoaded", () => {
     if (navDrafts)    navDrafts.addEventListener("click",    () => switchTab("drafts",    navDrafts));
     if (navSettings)  navSettings.addEventListener("click",  () => switchTab("settings",  navSettings));
 
+    const seoExpertMenu = document.querySelector(".openseo-float-menu");
+    const seoExpertButton = seoExpertMenu?.querySelector(".openseo-float-button");
+    const seoToolMenu = document.getElementById("openseo-tool-menu");
+    if (seoExpertButton && seoToolMenu) {
+        const closeSeoToolMenu = () => {
+            seoToolMenu.classList.add("hidden");
+            seoExpertButton.setAttribute("aria-expanded", "false");
+        };
+
+        seoExpertButton.addEventListener("click", () => {
+            const isOpening = seoToolMenu.classList.contains("hidden");
+            seoToolMenu.classList.toggle("hidden", !isOpening);
+            seoExpertButton.setAttribute("aria-expanded", String(isOpening));
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!seoExpertMenu.contains(event.target)) closeSeoToolMenu();
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") closeSeoToolMenu();
+        });
+    }
+
     const btnHomeCreate = document.getElementById("btn-home-create-article");
     if (btnHomeCreate) btnHomeCreate.addEventListener("click", () => switchTab("create", navCreate));
 

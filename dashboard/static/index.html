@@ -568,14 +568,20 @@
         </div>
     </div>
 
-    <a class="openseo-float-button" href="/openseo" target="_blank" rel="noopener noreferrer" aria-label="SEO Optimization" title="SEO Optimization">
+    <div class="openseo-float-menu">
+        <button class="openseo-float-button" type="button" aria-expanded="false" aria-controls="openseo-tool-menu" aria-label="Open Pro SEO Expert tools" title="Pro SEO Expert">
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M4 19V5M4 19h16"/>
             <path d="M7 16v-3M11 16V9M15 16V6M19 16v-9"/>
             <path d="m7 10 4-3 4 1 4-4"/>
         </svg>
-        <span>SEO Optimization</span>
-    </a>
+            <span>Pro SEO Expert</span>
+            <span class="openseo-float-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div id="openseo-tool-menu" class="openseo-tool-menu hidden" role="menu" aria-label="SEO tools">
+            <a href="/openseo" target="_blank" rel="noopener noreferrer" role="menuitem">OpenSEO</a>
+        </div>
+    </div>
 
 </body>
 </html>
