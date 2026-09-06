@@ -259,9 +259,8 @@ def update_settings(settings: SettingsUpdate, user_id: int = Depends(get_current
 @app.get("/api/settings")
 def get_settings_handler(user_id: int = Depends(get_current_user_id)):
     with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT wp_url, wp_username, wp_app_password, theme_type, seo_plugin FROM user_settings WHERE user_id = ?", (user_id,))
-        row = cursor.fetchone()
+        result = conn.execute("SELECT wp_url, wp_username, wp_app_password, theme_type, seo_plugin FROM user_settings WHERE user_id = ?", (user_id,))
+        row = result.fetchone()
         if not row:
             return {}
         data = dict(row)
@@ -772,9 +771,8 @@ async def add_link(
 @app.get("/api/links/status")
 def get_links_status(user_id: int = Depends(get_current_user_id)):
     with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, url, game_name, provider, status, status_reason, created_at FROM links WHERE user_id = ? ORDER BY created_at DESC LIMIT 50", (user_id,))
-        rows = cursor.fetchall()
+        result = conn.execute("SELECT id, url, game_name, provider, status, status_reason, created_at FROM links WHERE user_id = ? ORDER BY created_at DESC LIMIT 50", (user_id,))
+        rows = result.fetchall()
         return [dict(row) for row in rows]
 
 @app.get("/api/logs")
