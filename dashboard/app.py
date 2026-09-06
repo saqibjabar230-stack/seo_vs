@@ -204,37 +204,27 @@ def logout(response: Response, user_id: int = Depends(get_current_user_id), requ
 @app.post("/api/settings")
 def update_settings(settings: SettingsUpdate, user_id: int = Depends(get_current_user_id)):
     encrypted_password = encrypt_credential(settings.wp_app_password)
+    with get_db_connection() as conn:
+        conn.execute("""
+            INSERT INTO user_settings (user_id, wp_url, wp_username, wp_app_password, theme_type, seo_plugin)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (user_id) DO UPDATE SET
+                wp_url = excluded.wp_url,
+                wp_username = excluded.wp_username,
+                wp_app_password = excluded.wp_app_password,
+                theme_type = excluded.theme_type,
+                seo_plugin = excluded.seo_plugin
+        """, (
+            user_id,
+            settings.wp_url,
+            settings.wp_username,
+            encrypted_password,
+            settings.theme_type,
+            settings.seo_plugin,
+        ))
+        conn.commit()
+
     with SessionLocal() as db:
-        # Upsert UserSettings safely
-        s = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
-        if s:
-            s.wp_url = settings.wp_url
-            s.wp_username = settings.wp_username
-            s.wp_app_password = encrypted_password
-            s.theme_type = settings.theme_type
-            s.seo_plugin = settings.seo_plugin
-            db.commit()
-        else:
-            try:
-                s = UserSettings(
-                    user_id=user_id,
-                    wp_url=settings.wp_url,
-                    wp_username=settings.wp_username,
-                    wp_app_password=encrypted_password,
-                    theme_type=settings.theme_type,
-                    seo_plugin=settings.seo_plugin
-                )
-                db.add(s)
-                db.commit()
-            except Exception:
-                db.rollback()
-                s = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
-                if s:
-                    s.wp_url = settings.wp_url
-                    s.wp_username = settings.wp_username
-                    s.wp_app_password = encrypted_password
-                    db.commit()
-        
         # Upsert WordPressSite record
         site = db.query(WordPressSite).filter(WordPressSite.user_id == user_id, WordPressSite.site_url == settings.wp_url).first()
         if not site:
