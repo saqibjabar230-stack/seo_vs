@@ -208,14 +208,10 @@ def execute_job_task(job_id: str, payload: Dict[str, Any]):
         
         
         # Load Template
-        from utils.db_models import UserSettings, ContentTemplate, TemplateSection
+        from utils.db_models import ContentTemplate, TemplateSection
         with SessionLocal() as db:
-            settings = db.query(UserSettings).filter(UserSettings.user_id == user_id).first()
-            template_id = settings.active_template_id if settings else None
             template_dict = None
             tmpl = None
-            if template_id:
-                tmpl = db.query(ContentTemplate).filter(ContentTemplate.id == template_id).first()
             if not tmpl:
                 # Mimic UI fallback so image assignment section_ids perfectly match generated draft section_ids
                 tmpl = db.query(ContentTemplate).filter(ContentTemplate.user_id == user_id, ContentTemplate.is_default == True).first()
