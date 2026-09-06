@@ -31,6 +31,7 @@ class ContentDocument(BaseModel):
     introduction: str
     sections: List[Section]
     conclusion: str
+    html_content: Optional[str] = None
     faqs: List[FAQ] = Field(default_factory=list)
     
     # Internal metadata

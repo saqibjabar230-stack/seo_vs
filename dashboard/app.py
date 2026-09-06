@@ -517,7 +517,7 @@ def get_drafts(user_id: int = Depends(get_current_user_id)):
                 "provider": d.provider,
                 "status": d.status,
                 "title": doc.get("title", "") if doc else "",
-                "html_content": doc.get("html_content", "") if doc else "",
+                "html_content": RenderingEngine.render_classic_html(ContentDocument(**doc)) if doc else "",
                 "created_at": d.created_at.strftime("%Y-%m-%d %H:%M") if d.created_at else None
             })
         return result
@@ -624,7 +624,7 @@ def publish_draft(draft_id: int, action: str = "publish", user_id: int = Depends
         if not article_id:
             raise HTTPException(status_code=500, detail="Failed to publish to WordPress. Check logs.")
             
-        draft_record.status = "published"
+        draft_record.status = "published" if action == "publish" else "sent_as_draft"
         
         existing_history = db.query(PublishHistory).filter(
             PublishHistory.user_id == user_id,

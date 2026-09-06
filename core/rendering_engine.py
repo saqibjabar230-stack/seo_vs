@@ -8,6 +8,9 @@ class RenderingEngine:
         Renders ContentDocument into standard, semantic WordPress HTML.
         Supports section_id-based image assignments and strict fallback rules.
         """
+        if doc.html_content is not None:
+            return doc.html_content
+
         html = []
         assignments = image_assignments or []
         

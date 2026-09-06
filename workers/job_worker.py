@@ -253,6 +253,8 @@ def execute_job_task(job_id: str, payload: Dict[str, Any]):
         emit_job_event(job_id, user_id, "QUALITY_CHECK_STARTED", "QUALITY_CHECK", "PROCESSING")
         differentiation_ok = check_differentiation(draft_doc)
         compliance_ok = check_market_allowlist(target_market)
+        if not differentiation_ok or not compliance_ok:
+            raise ValueError("Generated article failed quality or market compliance checks")
         emit_job_event(job_id, user_id, "QUALITY_CHECK_COMPLETED", "QUALITY_CHECK", "PROCESSING", "Quality & Compliance checks passed.")
         
         # 7. Save Draft & Set Status to PENDING_REVIEW
