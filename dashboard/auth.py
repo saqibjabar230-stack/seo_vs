@@ -43,9 +43,8 @@ def get_current_user_id(session_token: str = Depends(cookie_scheme)) -> int:
         )
     
     with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT user_id FROM sessions WHERE token = ?", (session_token,))
-        row = cursor.fetchone()
+        result = conn.execute("SELECT user_id FROM sessions WHERE token = ?", (session_token,))
+        row = result.fetchone()
         
         if not row:
             raise HTTPException(
@@ -92,9 +91,8 @@ def log_audit_event(user_id: Optional[int], action: str, resource_type: str = No
 def get_user_settings(user_id: int) -> dict:
     from utils.crypto import decrypt_credential
     with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM user_settings WHERE user_id = ?", (user_id,))
-        row = cursor.fetchone()
+        result = conn.execute("SELECT * FROM user_settings WHERE user_id = ?", (user_id,))
+        row = result.fetchone()
         if not row:
             return {}
         data = dict(row)
